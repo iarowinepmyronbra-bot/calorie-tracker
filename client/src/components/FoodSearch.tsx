@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Mic, Search, Plus, Loader2 } from "lucide-react";
+import { Mic, Search, Plus, Loader2, Camera } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 interface FoodSearchProps {
@@ -18,6 +18,8 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
   const [selectedFood, setSelectedFood] = useState<any>(null);
   const [grams, setGrams] = useState("100");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { data: searchResults, isLoading: isSearching } = trpc.foods.search.useQuery(
     { query: searchQuery },
@@ -86,6 +88,34 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
     }
   };
 
+  const handleCameraClick = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.capture = "environment";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setSelectedImage(file);
+        analyzeImage(file);
+      }
+    };
+    input.click();
+  };
+
+  const analyzeImage = async (file: File) => {
+    setIsAnalyzing(true);
+    toast.info("正在识别食物...");
+    
+    // TODO: 集成AI视觉识别API
+    // 这里先模拟识别结果
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      toast.success("识别完成！请在搜索结果中查看");
+      setSearchQuery("鸡胸肉"); // 模拟识别结果
+    }, 2000);
+  };
+
   return (
     <div className="space-y-4 pb-24">
       <Card>
@@ -140,8 +170,25 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
         </CardContent>
       </Card>
 
-      {/* Voice Input Button - Fixed at Bottom */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+      {/* Bottom Action Buttons - Fixed at Bottom */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6">
+        {/* Camera Button */}
+        <Button
+          size="lg"
+          className={`rounded-full h-14 w-14 shadow-2xl transition-all ${
+            isAnalyzing ? "bg-primary/50" : "bg-card hover:bg-card/80 border-2 border-primary/30"
+          }`}
+          onClick={handleCameraClick}
+          disabled={isAnalyzing}
+        >
+          {isAnalyzing ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Camera className="h-5 w-5" />
+          )}
+        </Button>
+
+        {/* Voice Input Button */}
         <Button
           size="lg"
           className={`rounded-full h-16 w-16 shadow-2xl transition-all ${
@@ -151,9 +198,13 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
         >
           <Mic className={`h-6 w-6 ${isListening ? "animate-pulse" : ""}`} />
         </Button>
-        {isListening && (
+
+        {/* Status Tooltip */}
+        {(isListening || isAnalyzing) && (
           <div className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap bg-card px-4 py-2 rounded-lg shadow-lg border">
-            <div className="text-sm font-medium">正在听...</div>
+            <div className="text-sm font-medium">
+              {isListening ? "正在听..." : "正在识别..."}
+            </div>
             {transcript && <div className="text-xs text-muted-foreground mt-1">{transcript}</div>}
           </div>
         )}
