@@ -2,11 +2,53 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { recognizeFood, analyzeFoodAdvice } from "./_core/foodVision";
+import { storagePut } from "./storage";
 import { z } from "zod";
 import * as db from "./db";
 import * as calc from "./utils/calculations";
 
 export const appRouter = router({
+  foodVision: router({
+    recognize: protectedProcedure
+      .input(z.object({ imageBase64: z.string() }))
+      .mutation(async ({ input }) => {
+        try {
+          // 将base64图片上传到S3
+          const buffer = Buffer.from(input.imageBase64.split(',')[1] || input.imageBase64, 'base64');
+          const fileName = `food-images/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+          const { url } = await storagePut(fileName, buffer, 'image/jpeg');
+          
+          // 调用AI识别
+          const result = await recognizeFood(url);
+          return result;
+        } catch (error: any) {
+          return {
+            success: false,
+            foods: [],
+            error: error.message || '识别失败',
+          };
+        }
+      }),
+    
+    analyze: protectedProcedure
+      .input(z.object({
+        foodName: z.string(),
+        calories: z.number(),
+        userDailyTarget: z.number(),
+        todayConsumed: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const advice = await analyzeFoodAdvice(
+          input.foodName,
+          input.calories,
+          input.userDailyTarget,
+          input.todayConsumed
+        );
+        return { advice };
+      }),
+  }),
+
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({

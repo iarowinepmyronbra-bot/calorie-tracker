@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Utensils, Activity, Moon, Scale, BarChart3, LogOut } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { FoodSearch } from "@/components/FoodSearch";
+import { ExerciseLog } from "@/components/ExerciseLog";
 
 export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -167,40 +168,59 @@ export default function Home() {
         </Card>
 
         {/* Tabs */}
-        <Tabs defaultValue="food" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="food">
-              <Utensils className="h-4 w-4 mr-2" />
-              饮食
-            </TabsTrigger>
-            <TabsTrigger value="exercise">
-              <Activity className="h-4 w-4 mr-2" />
-              运动
-            </TabsTrigger>
-            <TabsTrigger value="sleep">
-              <Moon className="h-4 w-4 mr-2" />
-              睡眠
-            </TabsTrigger>
-            <TabsTrigger value="weight">
-              <Scale className="h-4 w-4 mr-2" />
-              体重
-            </TabsTrigger>
-            <TabsTrigger value="stats">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              统计
-            </TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="food" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>功能区</CardTitle>
+            </CardHeader>
+            <CardContent>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="food">
+                <Utensils className="h-4 w-4 mr-2" />
+                饮食
+              </TabsTrigger>
+              <TabsTrigger value="exercise">
+                <Activity className="h-4 w-4 mr-2" />
+                运动
+              </TabsTrigger>
+              <TabsTrigger value="sleep">
+                <Moon className="h-4 w-4 mr-2" />
+                睡眠
+              </TabsTrigger>
+              <TabsTrigger value="weight">
+                <Scale className="h-4 w-4 mr-2" />
+                体重
+              </TabsTrigger>
+              <TabsTrigger value="stats">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                统计
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="food" className="mt-6">
+              <FoodSearch key={refreshKey} onFoodAdded={handleFoodAdded} />
+            </TabsContent>
+            <TabsContent value="exercise" className="mt-6">
+              <ExerciseLog onExerciseAdded={handleFoodAdded} />
+            </TabsContent>
+            <TabsContent value="sleep" className="mt-6">
+              <div className="text-center py-12 text-muted-foreground">开发中...</div>
+            </TabsContent>
+            <TabsContent value="weight" className="mt-6">
+              <div className="text-center py-12 text-muted-foreground">开发中...</div>
+            </TabsContent>
+            <TabsContent value="stats" className="mt-6">
+              <div className="text-center py-12 text-muted-foreground">开发中...</div>
+            </TabsContent>
+            </CardContent>
+          </Card>
+        </Tabs>
 
-          <TabsContent value="food" className="space-y-6">
-            <FoodSearch onFoodAdded={handleFoodAdded} />
-
-            {/* Today's Food Logs */}
-            <Card>
-              <CardHeader>
-                <CardTitle>今日饮食记录</CardTitle>
-                <CardDescription>共 {todayLogs?.length || 0} 条记录</CardDescription>
-              </CardHeader>
-              <CardContent>
+        {/* Today's Food Logs */}
+        <Card>
+          <CardHeader>
+            <CardTitle>今日饮食记录</CardTitle>
+          </CardHeader>
+          <CardContent>
                 {todayLogs && todayLogs.length > 0 ? (
                   <div className="space-y-3">
                     {todayLogs.map((log) => (
@@ -225,46 +245,8 @@ export default function Home() {
                     还没有饮食记录，快去添加吧！
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="exercise">
-            <Card>
-              <CardHeader>
-                <CardTitle>运动记录</CardTitle>
-                <CardDescription>功能开发中...</CardDescription>
-              </CardHeader>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="sleep">
-            <Card>
-              <CardHeader>
-                <CardTitle>睡眠记录</CardTitle>
-                <CardDescription>功能开发中...</CardDescription>
-              </CardHeader>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="weight">
-            <Card>
-              <CardHeader>
-                <CardTitle>体重追踪</CardTitle>
-                <CardDescription>功能开发中...</CardDescription>
-              </CardHeader>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="stats">
-            <Card>
-              <CardHeader>
-                <CardTitle>数据统计</CardTitle>
-                <CardDescription>功能开发中...</CardDescription>
-              </CardHeader>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

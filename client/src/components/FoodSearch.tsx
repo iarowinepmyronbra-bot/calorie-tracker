@@ -103,17 +103,45 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
     input.click();
   };
 
+  const recognizeMutation = trpc.foodVision.recognize.useMutation();
+
   const analyzeImage = async (file: File) => {
     setIsAnalyzing(true);
     toast.info("正在识别食物...");
     
-    // TODO: 集成AI视觉识别API
-    // 这里先模拟识别结果
-    setTimeout(() => {
+    try {
+      // 读取文件为base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageBase64 = e.target?.result as string;
+        
+        try {
+          const result = await recognizeMutation.mutateAsync({ imageBase64 });
+          
+          if (result.success && result.foods.length > 0) {
+            const topFood = result.foods[0];
+            toast.success(`识别到: ${topFood.name}`);
+            setSearchQuery(topFood.name);
+          } else {
+            toast.error(result.error || "未识别到食物");
+          }
+        } catch (error: any) {
+          toast.error("识别失败: " + (error.message || "请稍后重试"));
+        } finally {
+          setIsAnalyzing(false);
+        }
+      };
+      
+      reader.onerror = () => {
+        toast.error("读取图片失败");
+        setIsAnalyzing(false);
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      toast.error("识别失败: " + (error.message || "请稍后重试"));
       setIsAnalyzing(false);
-      toast.success("识别完成！请在搜索结果中查看");
-      setSearchQuery("鸡胸肉"); // 模拟识别结果
-    }, 2000);
+    }
   };
 
   return (
