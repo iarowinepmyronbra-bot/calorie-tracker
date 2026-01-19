@@ -163,6 +163,46 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
             />
           </div>
 
+          {/* Action Buttons */}
+          <div className="flex items-center justify-center gap-4 py-4">
+            {/* Camera Button */}
+            <Button
+              size="lg"
+              className={`rounded-full h-16 w-16 shadow-lg transition-all ${
+                isAnalyzing ? "bg-primary/50 scale-110" : "bg-card hover:bg-card/80 border-2 border-primary/30"
+              }`}
+              onClick={handleCameraClick}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <Camera className="h-6 w-6" />
+              )}
+            </Button>
+
+            {/* Voice Input Button */}
+            <Button
+              size="lg"
+              className={`rounded-full h-16 w-16 shadow-lg transition-all ${
+                isListening ? "bg-destructive hover:bg-destructive/90 scale-110" : "bg-primary hover:bg-primary/90"
+              }`}
+              onClick={handleVoiceButtonPress}
+            >
+              <Mic className={`h-6 w-6 ${isListening ? "animate-pulse" : ""}`} />
+            </Button>
+          </div>
+
+          {/* Status Text */}
+          {(isListening || isAnalyzing) && (
+            <div className="text-center">
+              <div className="text-sm font-medium text-primary">
+                {isListening ? "正在听..." : "正在识别..."}
+              </div>
+              {transcript && <div className="text-xs text-muted-foreground mt-1">{transcript}</div>}
+            </div>
+          )}
+
           {/* Search Results */}
           {isSearching && (
             <div className="flex items-center justify-center py-8">
@@ -198,45 +238,7 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
         </CardContent>
       </Card>
 
-      {/* Bottom Action Buttons - Fixed at Bottom */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6">
-        {/* Camera Button */}
-        <Button
-          size="lg"
-          className={`rounded-full h-16 w-16 shadow-2xl transition-all ${
-            isAnalyzing ? "bg-primary/50 scale-110" : "bg-card hover:bg-card/80 border-2 border-primary/30"
-          }`}
-          onClick={handleCameraClick}
-          disabled={isAnalyzing}
-        >
-          {isAnalyzing ? (
-            <Loader2 className="h-6 w-6 animate-spin" />
-          ) : (
-            <Camera className="h-6 w-6" />
-          )}
-        </Button>
 
-        {/* Voice Input Button */}
-        <Button
-          size="lg"
-          className={`rounded-full h-16 w-16 shadow-2xl transition-all ${
-            isListening ? "bg-destructive hover:bg-destructive/90 scale-110" : "bg-primary hover:bg-primary/90"
-          }`}
-          onClick={handleVoiceButtonPress}
-        >
-          <Mic className={`h-6 w-6 ${isListening ? "animate-pulse" : ""}`} />
-        </Button>
-
-        {/* Status Tooltip */}
-        {(isListening || isAnalyzing) && (
-          <div className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap bg-card px-4 py-2 rounded-lg shadow-lg border">
-            <div className="text-sm font-medium">
-              {isListening ? "正在听..." : "正在识别..."}
-            </div>
-            {transcript && <div className="text-xs text-muted-foreground mt-1">{transcript}</div>}
-          </div>
-        )}
-      </div>
 
       {/* Add Food Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

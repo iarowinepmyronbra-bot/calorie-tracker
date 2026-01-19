@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
@@ -31,7 +31,15 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
+    
+    // 处理system主题：跟随系统设置
+    let effectiveTheme = theme;
+    if (theme === "system") {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      effectiveTheme = prefersDark ? "dark" : "light";
+    }
+    
+    if (effectiveTheme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
@@ -39,6 +47,21 @@ export function ThemeProvider({
 
     if (switchable) {
       localStorage.setItem("theme", theme);
+    }
+    
+    // 监听系统主题变化
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => {
+        const prefersDark = mediaQuery.matches;
+        if (prefersDark) {
+          root.classList.add("dark");
+        } else {
+          root.classList.remove("dark");
+        }
+      };
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
     }
   }, [theme, switchable]);
 
