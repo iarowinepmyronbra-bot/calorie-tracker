@@ -9,6 +9,10 @@ import { Loader2, Utensils, Activity, Moon, Scale, BarChart3, LogOut } from "luc
 import { getLoginUrl } from "@/const";
 import { FoodSearch } from "@/components/FoodSearch";
 import { ExerciseLog } from "@/components/ExerciseLog";
+import { SleepLog } from "@/components/SleepLog";
+import { WeightTracker } from "@/components/WeightTracker";
+import { MealPlanRecommend } from "@/components/MealPlanRecommend";
+import { AIAdvisor } from "@/components/AIAdvisor";
 
 export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -203,13 +207,16 @@ export default function Home() {
               <ExerciseLog onExerciseAdded={handleFoodAdded} />
             </TabsContent>
             <TabsContent value="sleep" className="mt-6">
-              <div className="text-center py-12 text-muted-foreground">开发中...</div>
+              <SleepLog onSleepAdded={handleFoodAdded} />
             </TabsContent>
             <TabsContent value="weight" className="mt-6">
-              <div className="text-center py-12 text-muted-foreground">开发中...</div>
+              <WeightTracker onWeightAdded={handleFoodAdded} />
             </TabsContent>
             <TabsContent value="stats" className="mt-6">
-              <div className="text-center py-12 text-muted-foreground">开发中...</div>
+              <div className="space-y-6">
+                <MealPlanRecommend />
+                <AIAdvisor />
+              </div>
             </TabsContent>
             </CardContent>
           </Card>

@@ -3,12 +3,100 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { recognizeFood, analyzeFoodAdvice } from "./_core/foodVision";
+import { invokeLLM } from "./_core/llm";
 import { storagePut } from "./storage";
 import { z } from "zod";
 import * as db from "./db";
 import * as calc from "./utils/calculations";
 
 export const appRouter = router({
+  aiAdvisor: router({
+    chat: protectedProcedure
+      .input(
+        z.object({
+          message: z.string(),
+          type: z.enum(["nutritionist", "trainer"]),
+          context: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const profile = await db.getUserProfile(ctx.user.id);
+        
+        const systemPrompt = input.type === "nutritionist"
+          ? "你是一位专业的营养师，擅长饮食分析、营养搭配和减肥建议。请用专业且易懂的语言回答用户问题。"
+          : "你是一位专业的健身教练，擅长运动计划、训练指导和体能管理。请用专业且易懂的语言回答用户问题。";
+
+        let contextInfo = "";
+        if (profile) {
+          contextInfo = `\n\n用户信息：
+- 性别：${profile.gender === "male" ? "男" : "女"}
+- 年龄：${profile.age}岁
+- 身高：${profile.height}cm
+- 当前体重：${profile.initialWeight}kg
+- 目标体重：${profile.targetWeight}kg
+- 每日卡路里目标：${profile.dailyCalorieTarget}千卡`;
+        }
+
+        if (input.context) {
+          contextInfo += `\n\n当前情况：${input.context}`;
+        }
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt + contextInfo },
+            { role: "user", content: input.message },
+          ],
+        });
+
+        const reply = response.choices[0]?.message?.content || "抱歉，我暂时无法回答这个问题。";
+        return { success: true, reply };
+      }),
+  }),
+
+  mealPlan: router({
+    recommend: protectedProcedure
+      .input(
+        z.object({
+          targetCalories: z.number(),
+          preferences: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const profile = await db.getUserProfile(ctx.user.id);
+        if (!profile) {
+          throw new Error("请先完成用户画像设置");
+        }
+
+        const prompt = `作为专业营养师，请为以下用户推荐今日饮食计划：
+
+用户信息：
+- 性别：${profile.gender === "male" ? "男" : "女"}
+- 年龄：${profile.age}岁
+- 身高：${profile.height}cm
+- 当前体重：${profile.initialWeight}kg
+- 目标体重：${profile.targetWeight}kg
+- 每日卡路里目标：${input.targetCalories}千卡
+${input.preferences ? `- 饮食偏好：${input.preferences}` : ""}
+
+请提供：
+1. 三餐具体菜品推荐（早餐、午餐、晚餐）
+2. 每餐的大致卡路里
+3. 营养搭配建议
+4. 简单的烹饪提示
+
+请用中文回答，格式清晰易读。`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "你是一位专业的营养师，擅长制定健康的饮食计划。" },
+            { role: "user", content: prompt },
+          ],
+        });
+
+        const recommendation = response.choices[0]?.message?.content || "生成失败";
+        return { success: true, recommendation };
+      }),
+  }),
   foodVision: router({
     recognize: protectedProcedure
       .input(z.object({ imageBase64: z.string() }))
