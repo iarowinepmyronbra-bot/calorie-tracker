@@ -113,6 +113,23 @@
   --sidebar-ring: oklch(0.65 0.20 250);
 }
 
+/* iPhone 安全区域适配 */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

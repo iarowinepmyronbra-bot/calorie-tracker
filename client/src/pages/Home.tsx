@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Utensils, Activity, Moon, Scale, BarChart3, Trophy, LogOut } from "lucide-react";
+import { Utensils, Activity, Moon, Scale, BarChart3, Trophy, LogOut, User } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { FoodSearch } from "@/components/FoodSearch";
 import { ExerciseLog } from "@/components/ExerciseLog";
@@ -19,252 +18,186 @@ import { SocialMotivation } from "@/components/SocialMotivation";
 export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState("food");
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const { data: profile, isLoading: profileLoading } = trpc.userProfile.get.useQuery(undefined, {
+  const { data: profile } = trpc.userProfile.get.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
-  const { data: dailyStats } = trpc.foodLogs.dailyStats.useQuery(
+  const { data: todayStats } = trpc.foodLogs.dailyStats.useQuery(
     { date: new Date() },
     { enabled: isAuthenticated, refetchInterval: 5000 }
   );
 
-  const { data: todayLogs, refetch: refetchLogs } = trpc.foodLogs.list.useQuery(
-    {
-      startDate: new Date(new Date().setHours(0, 0, 0, 0)),
-      endDate: new Date(new Date().setHours(23, 59, 59, 999)),
-    },
-    { enabled: isAuthenticated }
-  );
-
-  useEffect(() => {
-    if (isAuthenticated && !profileLoading && !profile) {
-      setLocation("/onboarding");
-    }
-  }, [isAuthenticated, profile, profileLoading, setLocation]);
-
-  const handleFoodAdded = () => {
-    refetchLogs();
-    setRefreshKey((prev) => prev + 1);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    window.location.reload();
-  };
-
-  if (loading || profileLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">加载中...</p>
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">健康减肥助手</CardTitle>
-            <CardDescription>科学管理饮食，轻松达成目标</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>✓ 语音输入，快速记录</p>
-              <p>✓ 智能计算，精准预测</p>
-              <p>✓ 运动追踪，全面管理</p>
-              <p>✓ 数据可视化，一目了然</p>
-            </div>
-            <Button asChild className="w-full" size="lg">
-              <a href={getLoginUrl()}>立即开始</a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!profile) {
+    setLocation("/onboarding");
     return null;
   }
 
-  const netCalories = (dailyStats?.totalCalories || 0);
-  const calorieTarget = profile.dailyCalorieTarget;
-  const remaining = calorieTarget - netCalories;
-  const progress = Math.min((netCalories / calorieTarget) * 100, 100);
+  if (!profile) {
+    setLocation("/onboarding");
+    return null;
+  }
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/");
+  };
+
+  const handleFoodAdded = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
+
+  const caloriesConsumed = todayStats?.totalCalories || 0;
+  const caloriesTarget = profile?.dailyCalorieTarget || 2000;
+  const caloriesRemaining = Math.max(0, caloriesTarget - caloriesConsumed);
+  const progress = Math.min((caloriesConsumed / caloriesTarget) * 100, 100);
+
+  // 底部导航配置
+  const tabs = [
+    { id: "food", label: "饮食", icon: Utensils },
+    { id: "exercise", label: "运动", icon: Activity },
+    { id: "stats", label: "统计", icon: BarChart3 },
+    { id: "social", label: "成就", icon: Trophy },
+    { id: "profile", label: "我的", icon: User },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-10">
-        <div className="container flex items-center justify-between py-4">
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="opacity-0 pointer-events-none">
-            <LogOut className="h-4 w-4 mr-2" />
-            退出
-          </Button>
-          <div className="flex-1 text-center">
-            <h1 className="text-2xl font-bold text-primary">健康减肥助手</h1>
-            <p className="text-sm text-muted-foreground">你好，{user?.name || "用户"}</p>
+    <div className="min-h-screen bg-background pb-20">
+      {/* 顶部状态栏 */}
+      <div className="sticky top-0 z-50 bg-card border-b">
+        <div className="safe-top" />
+        <div className="container py-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-bold text-primary">健康减肥助手</h1>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            退出
-          </Button>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="container py-6 space-y-6">
-        {/* Daily Stats Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>今日概览</CardTitle>
-            <CardDescription>
-              {new Date().toLocaleDateString("zh-CN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-sm text-muted-foreground">已摄入</div>
-                <div className="text-2xl font-bold text-primary">{netCalories}</div>
-                <div className="text-xs text-muted-foreground">千卡</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">目标</div>
-                <div className="text-2xl font-bold">{calorieTarget}</div>
-                <div className="text-xs text-muted-foreground">千卡</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">剩余</div>
-                <div className={`text-2xl font-bold ${remaining >= 0 ? "text-green-600" : "text-destructive"}`}>
-                  {remaining}
+      {/* 今日概览卡片 */}
+      {activeTab === "food" && (
+        <div className="container py-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center mb-4">
+                <div className="text-sm text-muted-foreground mb-2">今日摄入</div>
+                <div className="text-4xl font-bold text-primary mb-1">
+                  {caloriesConsumed}
+                  <span className="text-lg text-muted-foreground ml-1">千卡</span>
                 </div>
-                <div className="text-xs text-muted-foreground">千卡</div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>进度</span>
-                <span>{progress.toFixed(0)}%</span>
+                <div className="text-sm text-muted-foreground">
+                  目标 {caloriesTarget} / 剩余 {caloriesRemaining}
+                </div>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all ${
-                    progress > 100 ? "bg-destructive" : "bg-primary"
-                  }`}
-                  style={{ width: `${Math.min(progress, 100)}%` }}
+                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-500"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
-            </div>
-
-            {remaining < 0 && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
-                ⚠️ 今日摄入已超标 {Math.abs(remaining)} 卡，建议减少晚餐或增加运动
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Tabs */}
-        <Tabs defaultValue="food" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>功能区</CardTitle>
-            </CardHeader>
-            <CardContent>
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="food">
-                <Utensils className="h-4 w-4 mr-2" />
-                饮食
-              </TabsTrigger>
-              <TabsTrigger value="exercise">
-                <Activity className="h-4 w-4 mr-2" />
-                运动
-              </TabsTrigger>
-              <TabsTrigger value="sleep">
-                <Moon className="h-4 w-4 mr-2" />
-                睡眠
-              </TabsTrigger>
-              <TabsTrigger value="weight">
-                <Scale className="h-4 w-4 mr-2" />
-                体重
-              </TabsTrigger>
-              <TabsTrigger value="stats">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                统计
-              </TabsTrigger>
-              <TabsTrigger value="social">
-                <Trophy className="h-4 w-4 mr-2" />
-                成就
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="food" className="mt-6">
-              <FoodSearch key={refreshKey} onFoodAdded={handleFoodAdded} />
-            </TabsContent>
-            <TabsContent value="exercise" className="mt-6">
-              <ExerciseLog onExerciseAdded={handleFoodAdded} />
-            </TabsContent>
-            <TabsContent value="sleep" className="mt-6">
-              <SleepLog onSleepAdded={handleFoodAdded} />
-            </TabsContent>
-            <TabsContent value="weight" className="mt-6">
-              <WeightTracker onWeightAdded={handleFoodAdded} />
-            </TabsContent>
-            <TabsContent value="stats" className="mt-6">
-              <div className="space-y-6">
-                <DataVisualization />
-                <MealPlanRecommend />
-                <AIAdvisor />
-              </div>
-            </TabsContent>
-            <TabsContent value="social" className="mt-6">
-              <SocialMotivation />
-            </TabsContent>
             </CardContent>
           </Card>
-        </Tabs>
+        </div>
+      )}
 
-        {/* Today's Food Logs */}
-        <Card>
-          <CardHeader>
-            <CardTitle>今日饮食记录</CardTitle>
-          </CardHeader>
-          <CardContent>
-                {todayLogs && todayLogs.length > 0 ? (
-                  <div className="space-y-3">
-                    {todayLogs.map((log) => (
-                      <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <div className="font-medium">{log.foodName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {log.grams}克 · {log.calories}卡
-                          </div>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(log.loggedAt).toLocaleTimeString("zh-CN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </div>
-                      </div>
-                    ))}
+      {/* 主内容区域 */}
+      <div className="container pb-4">
+        {activeTab === "food" && <FoodSearch key={refreshKey} onFoodAdded={handleFoodAdded} />}
+        {activeTab === "exercise" && <ExerciseLog onExerciseAdded={handleFoodAdded} />}
+        {activeTab === "stats" && (
+          <div className="space-y-6">
+            <DataVisualization />
+            <MealPlanRecommend />
+            <AIAdvisor />
+          </div>
+        )}
+        {activeTab === "social" && <SocialMotivation />}
+        {activeTab === "profile" && (
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center mb-6">
+                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <User className="h-10 w-10 text-primary" />
                   </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    还没有饮食记录，快去添加吧！
+                  <h2 className="text-xl font-bold mb-1">{user?.name || "用户"}</h2>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm">性别</span>
+                    <span className="text-sm font-medium">
+                      {profile.gender === "male" ? "男" : "女"}
+                    </span>
                   </div>
-                )}
-          </CardContent>
-        </Card>
-      </main>
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm">年龄</span>
+                    <span className="text-sm font-medium">{profile.age}岁</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm">身高</span>
+                    <span className="text-sm font-medium">{profile.height}cm</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm">当前体重</span>
+                    <span className="text-sm font-medium">{profile.initialWeight}kg</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm">目标体重</span>
+                    <span className="text-sm font-medium">{profile.targetWeight}kg</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm">每日目标</span>
+                    <span className="text-sm font-medium">{profile.dailyCalorieTarget}千卡</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <WeightTracker onWeightAdded={handleFoodAdded} />
+            <SleepLog onSleepAdded={handleFoodAdded} />
+          </div>
+        )}
+      </div>
+
+      {/* iOS风格底部导航栏 */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t">
+        <div className="safe-bottom" />
+        <div className="grid grid-cols-5 gap-1 px-2 pt-2 pb-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className={`h-6 w-6 mb-1 ${isActive ? "scale-110" : ""} transition-transform`} />
+                <span className="text-xs font-medium">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
