@@ -175,16 +175,16 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
         {/* Camera Button */}
         <Button
           size="lg"
-          className={`rounded-full h-14 w-14 shadow-2xl transition-all ${
-            isAnalyzing ? "bg-primary/50" : "bg-card hover:bg-card/80 border-2 border-primary/30"
+          className={`rounded-full h-16 w-16 shadow-2xl transition-all ${
+            isAnalyzing ? "bg-primary/50 scale-110" : "bg-card hover:bg-card/80 border-2 border-primary/30"
           }`}
           onClick={handleCameraClick}
           disabled={isAnalyzing}
         >
           {isAnalyzing ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-6 w-6 animate-spin" />
           ) : (
-            <Camera className="h-5 w-5" />
+            <Camera className="h-6 w-6" />
           )}
         </Button>
 

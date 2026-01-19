@@ -93,7 +93,11 @@ export default function Home() {
       {/* Header */}
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container flex items-center justify-between py-4">
-          <div>
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="opacity-0 pointer-events-none">
+            <LogOut className="h-4 w-4 mr-2" />
+            退出
+          </Button>
+          <div className="flex-1 text-center">
             <h1 className="text-2xl font-bold text-primary">健康减肥助手</h1>
             <p className="text-sm text-muted-foreground">你好，{user?.name || "用户"}</p>
           </div>
