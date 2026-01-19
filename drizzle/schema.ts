@@ -177,3 +177,55 @@ export const sleepLogs = mysqlTable("sleepLogs", {
 
 export type SleepLog = typeof sleepLogs.$inferSelect;
 export type InsertSleepLog = typeof sleepLogs.$inferInsert;
+
+/**
+ * GPS运动追踪记录表
+ */
+export const gpsExerciseLogs = mysqlTable("gps_exercise_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  exerciseType: varchar("exerciseType", { length: 50 }).notNull(), // running, cycling, walking
+  startTime: timestamp("startTime").notNull(),
+  endTime: timestamp("endTime").notNull(),
+  duration: int("duration").notNull(), // 秒
+  distance: int("distance").notNull(), // 米
+  avgSpeed: int("avgSpeed"), // m/s * 100
+  maxSpeed: int("maxSpeed"), // m/s * 100
+  calories: int("calories").notNull(),
+  routeData: text("routeData"), // JSON格式存储路线点
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type GpsExerciseLog = typeof gpsExerciseLogs.$inferSelect;
+export type InsertGpsExerciseLog = typeof gpsExerciseLogs.$inferInsert;
+
+/**
+ * 打卡记录表
+ */
+export const checkIns = mysqlTable("check_ins", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  date: timestamp("date").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // diet, exercise, sleep, weight
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CheckIn = typeof checkIns.$inferSelect;
+export type InsertCheckIn = typeof checkIns.$inferInsert;
+
+/**
+ * 成就徽章表
+ */
+export const achievements = mysqlTable("achievements", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // consecutive_checkin, weight_goal, exercise_milestone
+  title: varchar("title", { length: 100 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }),
+  unlockedAt: timestamp("unlockedAt").defaultNow().notNull(),
+});
+
+export type Achievement = typeof achievements.$inferSelect;
+export type InsertAchievement = typeof achievements.$inferInsert;

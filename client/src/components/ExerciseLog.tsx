@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GPSExerciseTracker } from "@/components/GPSExerciseTracker";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +104,12 @@ export function ExerciseLog({ onExerciseAdded }: ExerciseLogProps) {
   const totalBurned = todayExercises?.reduce((sum: number, ex: any) => sum + ex.caloriesBurned, 0) || 0;
 
   return (
-    <div className="space-y-4">
+    <Tabs defaultValue="manual" className="space-y-4">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="manual">手动记录</TabsTrigger>
+        <TabsTrigger value="gps">GPS追踪</TabsTrigger>
+      </TabsList>
+      <TabsContent value="manual" className="space-y-4">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -220,6 +227,10 @@ export function ExerciseLog({ onExerciseAdded }: ExerciseLogProps) {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </TabsContent>
+      <TabsContent value="gps">
+        <GPSExerciseTracker />
+      </TabsContent>
+    </Tabs>
   );
 }

@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Utensils, Activity, Moon, Scale, BarChart3, LogOut } from "lucide-react";
+import { Loader2, Utensils, Activity, Moon, Scale, BarChart3, Trophy, LogOut } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { FoodSearch } from "@/components/FoodSearch";
 import { ExerciseLog } from "@/components/ExerciseLog";
@@ -13,6 +13,8 @@ import { SleepLog } from "@/components/SleepLog";
 import { WeightTracker } from "@/components/WeightTracker";
 import { MealPlanRecommend } from "@/components/MealPlanRecommend";
 import { AIAdvisor } from "@/components/AIAdvisor";
+import { DataVisualization } from "@/components/DataVisualization";
+import { SocialMotivation } from "@/components/SocialMotivation";
 
 export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -199,6 +201,10 @@ export default function Home() {
                 <BarChart3 className="h-4 w-4 mr-2" />
                 统计
               </TabsTrigger>
+              <TabsTrigger value="social">
+                <Trophy className="h-4 w-4 mr-2" />
+                成就
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="food" className="mt-6">
               <FoodSearch key={refreshKey} onFoodAdded={handleFoodAdded} />
@@ -214,9 +220,13 @@ export default function Home() {
             </TabsContent>
             <TabsContent value="stats" className="mt-6">
               <div className="space-y-6">
+                <DataVisualization />
                 <MealPlanRecommend />
                 <AIAdvisor />
               </div>
+            </TabsContent>
+            <TabsContent value="social" className="mt-6">
+              <SocialMotivation />
             </TabsContent>
             </CardContent>
           </Card>

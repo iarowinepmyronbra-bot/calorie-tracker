@@ -22,6 +22,20 @@
       "when": 1768841964285,
       "tag": "0002_hot_corsair",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1768845263136,
+      "tag": "0003_conscious_ulik",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1768845361142,
+      "tag": "0004_cold_roughhouse",
+      "breakpoints": true
     }
   ]
 }
