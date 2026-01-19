@@ -42,11 +42,21 @@ declare global {
   }
 }
 
-export function useSpeechRecognition() {
+interface UseSpeechRecognitionOptions {
+  onResult?: (text: string) => void;
+  onError?: (error: string) => void;
+}
+
+export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   useEffect(() => {
     // 检查浏览器是否支持语音识别
@@ -61,13 +71,19 @@ export function useSpeechRecognition() {
       recognition.lang = "zh-CN"; // 设置为中文
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[0][0].transcript;
-        setTranscript(transcript);
+        const text = event.results[0][0].transcript;
+        setTranscript(text);
+        if (optionsRef.current?.onResult) {
+          optionsRef.current.onResult(text);
+        }
       };
 
       recognition.onerror = (event: any) => {
         console.error("语音识别错误:", event.error);
         setIsListening(false);
+        if (optionsRef.current?.onError) {
+          optionsRef.current.onError(event.error);
+        }
       };
 
       recognition.onend = () => {
@@ -109,6 +125,7 @@ export function useSpeechRecognition() {
     isListening,
     transcript,
     isSupported,
+    browserSupported: isSupported,
     startListening,
     stopListening,
     resetTranscript,
