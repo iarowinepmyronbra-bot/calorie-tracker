@@ -1,11 +1,12 @@
-import { eq, like, desc, and, gte, lte, sql } from "drizzle-orm";
+import { eq, like, desc, and, gte, lte, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, foods, Food, foodLogs, FoodLog, InsertFoodLog,
   userProfiles, UserProfile, InsertUserProfile,
   weightLogs, WeightLog, InsertWeightLog,
   exerciseLogs, ExerciseLog, InsertExerciseLog,
-  sleepLogs, SleepLog, InsertSleepLog
+  sleepLogs, SleepLog, InsertSleepLog,
+  favoriteFoods, FavoriteFood, InsertFavoriteFood
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -441,6 +442,70 @@ export async function getUserSleepLogs(
     return results;
   } catch (error) {
     console.error("[Database] Failed to get sleep logs:", error);
+    return [];
+  }
+}
+
+/**
+ * 添加收藏食物
+ */
+export async function addFavoriteFood(userId: number, foodId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    // 检查是否已收藏
+    const existing = await db.select().from(favoriteFoods)
+      .where(and(eq(favoriteFoods.userId, userId), eq(favoriteFoods.foodId, foodId)))
+      .limit(1);
+    
+    if (existing.length > 0) return existing[0];
+    
+    await db.insert(favoriteFoods).values({ userId, foodId });
+    return { userId, foodId };
+  } catch (error) {
+    console.error("[Database] Failed to add favorite food:", error);
+    return null;
+  }
+}
+
+/**
+ * 移除收藏食物
+ */
+export async function removeFavoriteFood(userId: number, foodId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  try {
+    await db.delete(favoriteFoods)
+      .where(and(eq(favoriteFoods.userId, userId), eq(favoriteFoods.foodId, foodId)));
+  } catch (error) {
+    console.error("[Database] Failed to remove favorite food:", error);
+  }
+}
+
+/**
+ * 获取用户收藏的食物
+ */
+export async function getUserFavoriteFoods(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  try {
+    const favorites = await db.select()
+      .from(favoriteFoods)
+      .where(eq(favoriteFoods.userId, userId));
+    
+    // 获取食物详情
+    const foodIds = favorites.map(f => f.foodId);
+    if (foodIds.length === 0) return [];
+    
+    const foodDetails = await db.select().from(foods)
+      .where(inArray(foods.id, foodIds));
+    
+    return foodDetails;
+  } catch (error) {
+    console.error("[Database] Failed to get favorite foods:", error);
     return [];
   }
 }

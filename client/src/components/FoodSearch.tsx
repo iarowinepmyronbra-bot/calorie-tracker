@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Mic, Search, Plus, Loader2, Camera } from "lucide-react";
+import { Mic, Search, Plus, Loader2, Camera, Star } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 interface FoodSearchProps {
@@ -20,11 +20,26 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
 
   const { data: searchResults, isLoading: isSearching } = trpc.foods.search.useQuery(
     { query: searchQuery },
     { enabled: searchQuery.length > 0 }
   );
+
+  const { data: favoriteFoods, refetch: refetchFavorites } = trpc.favoriteFoods.list.useQuery();
+  const addFavoriteMutation = trpc.favoriteFoods.add.useMutation({
+    onSuccess: () => {
+      toast.success("已添加到常吃食物");
+      refetchFavorites();
+    },
+  });
+  const removeFavoriteMutation = trpc.favoriteFoods.remove.useMutation({
+    onSuccess: () => {
+      toast.success("已移除");
+      refetchFavorites();
+    },
+  });
 
   const addFoodLog = trpc.foodLogs.add.useMutation({
     onSuccess: () => {
@@ -150,6 +165,16 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
         <CardHeader>
           <CardTitle>查询食物卡路里</CardTitle>
           <CardDescription>搜索食物或使用底部语音输入</CardDescription>
+          <div className="flex gap-2 mt-3">
+            <Button
+              variant={showFavorites ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFavorites(!showFavorites)}
+            >
+              <Star className="w-4 h-4 mr-1" />
+              常吃食物
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search Input */}
@@ -203,8 +228,32 @@ export function FoodSearch({ onFoodAdded }: FoodSearchProps) {
             </div>
           )}
 
+          {/* Favorite Foods */}
+          {showFavorites && favoriteFoods && favoriteFoods.length > 0 && (
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="text-sm font-medium text-muted-foreground mb-2">常吃食物</div>
+              {favoriteFoods.map((food) => (
+                <div
+                  key={food.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                  onClick={() => handleSelectFood(food)}
+                >
+                  <div>
+                    <div className="font-medium">{food.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {food.caloriesPer100g}卡/100g
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Search Results */}
-          {isSearching && (
+          {!showFavorites && isSearching && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>

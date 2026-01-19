@@ -376,6 +376,23 @@ ${input.preferences ? `- 饮食偏好：${input.preferences}` : ""}
         return await db.getUserSleepLogs(ctx.user.id, input.startDate, input.endDate);
       }),
   }),
+
+  favoriteFoods: router({
+    add: protectedProcedure
+      .input(z.object({ foodId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return await db.addFavoriteFood(ctx.user.id, input.foodId);
+      }),
+    remove: protectedProcedure
+      .input(z.object({ foodId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.removeFavoriteFood(ctx.user.id, input.foodId);
+        return { success: true };
+      }),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserFavoriteFoods(ctx.user.id);
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

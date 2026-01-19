@@ -229,3 +229,16 @@ export const achievements = mysqlTable("achievements", {
 
 export type Achievement = typeof achievements.$inferSelect;
 export type InsertAchievement = typeof achievements.$inferInsert;
+
+/**
+ * 收藏食物表：用户常吃的食物
+ */
+export const favoriteFoods = mysqlTable("favorite_foods", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  foodId: int("food_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type FavoriteFood = typeof favoriteFoods.$inferSelect;
+export type InsertFavoriteFood = typeof favoriteFoods.$inferInsert;
