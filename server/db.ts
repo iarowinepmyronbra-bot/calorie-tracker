@@ -1,73 +1,50 @@
-import { eq, like, desc, and, gte, lte, inArray, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, users, foods, Food, foodLogs, FoodLog, InsertFoodLog,
-  userProfiles, UserProfile, InsertUserProfile,
-  weightLogs, WeightLog, InsertWeightLog,
-  exerciseLogs, ExerciseLog, InsertExerciseLog,
-  sleepLogs, SleepLog, InsertSleepLog,
-  favoriteFoods, FavoriteFood, InsertFavoriteFood
-} from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { connect } from '@tidbcloud/serverless';
+import { drizzle } from 'drizzle-orm/tidb-serverless';
+import { mysqlTable, serial, varchar, timestamp, text } from 'drizzle-orm/mysql-core';
+import { eq } from 'drizzle-orm';
 
-// 1. 必须声明 _db 变量
-let _db: any = null;
+// 1. 定义用户表结构 (Schema)
+// 这里的字段必须和你数据库里真实的字段对应
+export const users = mysqlTable('users', {
+  id: serial('id').primaryKey(),
+  openId: varchar('open_id', { length: 255 }).unique().notNull(), // 对应 openId
+  name: varchar('name', { length: 255 }),
+  avatarUrl: text('avatar_url'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow(),
+});
 
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      const connectionString = process.env.DATABASE_URL;
-      // 2. 适配 TiDB Cloud SSL 连接
-      _db = drizzle({
-        connection: {
-          uri: connectionString,
-          ssl: {
-            minVersion: 'TLSv1.2',
-            rejectUnauthorized: true
-          }
-        }
-      });
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
-  }
-  return _db;
-}
+// 2. 初始化数据库连接 (修复 "找不到名称 _db" 的错误)
+const client = connect({ url: process.env.DATABASE_URL });
+export const _db = drizzle(client);
 
-// --- 以下是保持原样或修复后的导出函数，确保它们都存在 ---
-
-export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) throw new Error("User openId is required for upsert");
-  const db = await getDb();
-  if (!db) return;
-  try {
-    const values: InsertUser = { openId: user.openId };
-    const updateSet: Record<string, unknown> = {};
-    const textFields = ["name", "email", "loginMethod"] as const;
-    textFields.forEach(field => {
-      if (user[field] !== undefined) {
-        values[field] = user[field] ?? null;
-        updateSet[field] = user[field] ?? null;
-      }
-    });
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    }
-    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
-  } catch (error) { console.error(error); throw error; }
-}
-
+// 3. 导出查询函数 (修复 sdk.ts "不存在属性 getUserByOpenId" 的错误)
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const result = await _db.select().from(users).where(eq(users.openId, openId));
+  return result[0] || null;
 }
 
-// ... (其他函数如 searchFoods, addFoodLog 等请确保在文件中保留，不要删除)
+// 4. 导出更新/插入函数 (修复 sdk.ts "不存在属性 upsertUser" 的错误)
+export async function upsertUser(userData: { openId: string; name?: string; avatarUrl?: string }) {
+  const existing = await getUserByOpenId(userData.openId);
+  
+  if (existing) {
+    // 如果存在，更新信息
+    await _db.update(users)
+      .set({ 
+        name: userData.name, 
+        avatarUrl: userData.avatarUrl,
+        updatedAt: new Date()
+      })
+      .where(eq(users.openId, userData.openId));
+    return existing;
+  } else {
+    // 如果不存在，插入新用户
+    await _db.insert(users).values({
+      openId: userData.openId,
+      name: userData.name,
+      avatarUrl: userData.avatarUrl
+    });
+    return await getUserByOpenId(userData.openId);
+  }
+}
